@@ -1,0 +1,49 @@
+name: Auto-generate Terraform Docs and Tests
+
+on:
+  push:
+    paths:
+      - '**.tf'
+      - 'ask-claude.sh'
+      - '.github/workflows/claude-docs.yml'
+
+jobs:
+  generate-docs-and-tests:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make ask-claude.sh executable
+        run: chmod +x ./ask-claude.sh
+
+      - name: Generate README.md
+        run: |
+          ./ask-claude.sh "Please generate a comprehensive README.md for my Terraform module with the following code:
+
+          \`\`\`hcl
+          $(cat *.tf)
+          \`\`\`" > response.json
+          cat response.json | jq -r '.content[0].text' > README.md
+
+      - name: Generate TESTS.md
+        run: |
+          ./ask-claude.sh "Please generate native Terraform test files (.tftest) for the following module:
+
+          \`\`\`hcl
+          $(cat *.tf)
+          \`\`\`" > test_response.json
+          cat test_response.json | jq -r '.content[0].text' > TESTS.md
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md TESTS.md
+          git commit -m "Auto-generate docs and tests with Claude" || echo "No changes to commit"
+          git push
