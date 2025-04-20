@@ -6,6 +6,7 @@ on:
       - '**.tf'
       - 'ask-claude.sh'
       - '.github/workflows/claude-docs.yml'
+
 permissions:
   contents: write
 
@@ -29,7 +30,6 @@ jobs:
       - name: Generate README.md
         run: |
           ./ask-claude.sh "Please generate a comprehensive README.md for my Terraform module with the following code:
-
           \`\`\`hcl
           $(cat *.tf)
           \`\`\`" > response.json
@@ -38,19 +38,17 @@ jobs:
       - name: Generate TESTS.md
         run: |
           ./ask-claude.sh "Please generate native Terraform test files (.tftest) for the following module:
-
           \`\`\`hcl
           $(cat *.tf)
           \`\`\`" > test_response.json
           cat test_response.json | jq -r '.content[0].text' > TESTS.md
 
-- name: Commit and push changes
+      - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
           
           # Configure git to use GITHUB_TOKEN
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
