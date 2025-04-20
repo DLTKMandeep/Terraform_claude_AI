@@ -6,6 +6,8 @@ on:
       - '**.tf'
       - 'ask-claude.sh'
       - '.github/workflows/claude-docs.yml'
+permissions:
+  contents: write
 
 jobs:
   generate-docs-and-tests:
@@ -15,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper git operations
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -39,13 +43,23 @@ jobs:
           $(cat *.tf)
           \`\`\`" > test_response.json
           cat test_response.json | jq -r '.content[0].text' > TESTS.md
+
 - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Configure git to use GITHUB_TOKEN
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          
+          # Pull the latest changes
+          git pull --rebase origin master
+          
+          # Add and commit changes
           git add README.md TESTS.md
           git commit -m "Auto-generate docs and tests with Claude" || echo "No changes to commit"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
-          git push
+          
+          # Push changes
+          git push origin master
