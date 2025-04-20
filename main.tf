@@ -1,5 +1,5 @@
 resource "random_string" "cluster_id" {
-  length  = 9
+  length  = 7
   special = false
   upper   = false
 }
